@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Ingestion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Data Ingestion</h1>
+        <form id="ingestForm">
+            <div class="form-group">
+                <label for="source">Source</label>
+                <input type="text" id="source" name="source" placeholder="Enter data source" required />
+            </div>
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea id="content" name="content" placeholder="Enter content" rows="4" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="timestamp">Timestamp</label>
+                <input type="datetime-local" id="timestamp" name="timestamp" required />
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('ingestForm');
+        const messageDiv = document.getElementById('message');
+
+        // Function to validate form fields
+        function validateForm(data) {
+            const { source, content, timestamp } = data;
+            if (!source || !content || !timestamp) {
+                return 'All fields are required!';
+            }
+            return null;
+        }
+
+        // Function to handle form submission
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Collecting form data
+            const source = document.getElementById('source').value;
+            const content = document.getElementById('content').value;
+            const timestamp = document.getElementById('timestamp').value;
+
+            const data = { source, content, timestamp };
+
+            // Validate form data
+            const validationError = validateForm(data);
+            if (validationError) {
+                messageDiv.textContent = validationError;
+                messageDiv.className = 'message error';  // Add error class for red message
+                return;
+            }
+
+            // Show loading message
+            messageDiv.textContent = 'Processing data...';
+            messageDiv.className = 'message';  // Reset class for normal message
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/ingest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    messageDiv.textContent = result.message;
+                    messageDiv.className = 'message success';  // Add success class for green message
+                    form.reset();
+                } else {
+                    const result = await response.json();
+                    messageDiv.textContent = result.message || 'Error ingesting data. Please try again.';
+                    messageDiv.className = 'message error';  // Add error class for red message
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Network error. Please check your connection.';
+                messageDiv.className = 'message error';  // Add error class for red message
+            }
+        });
+    </script>
+</body>
+</html>
