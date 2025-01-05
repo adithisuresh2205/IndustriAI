@@ -1,0 +1,49 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+
+file_path = 'final_merged_data.csv'
+
+try:
+    data = pd.read_csv(file_path)
+except FileNotFoundError:
+    raise FileNotFoundError(f"File not found: {file_path}. Please check the file path.")
+
+print(data.info())  
+print(data.describe()) 
+print(data.isnull().sum())  
+
+num_cols = data.select_dtypes(include=['float64', 'int64']).columns
+cat_cols = data.select_dtypes(include=['object']).columns
+
+if num_cols.empty:
+    print("Warning: No numeric columns found.")
+else:
+    num_imputer = SimpleImputer(strategy='mean')
+    data[num_cols] = num_imputer.fit_transform(data[num_cols])
+
+if cat_cols.empty:
+    print("Warning: No categorical columns found.")
+else:
+    cat_imputer = SimpleImputer(strategy='most_frequent')
+    data[cat_cols] = cat_imputer.fit_transform(data[cat_cols])
+
+if not cat_cols.empty:
+    encoder = OneHotEncoder(sparse=False, drop='first')
+    encoded_cols = pd.DataFrame(encoder.fit_transform(data[cat_cols]), columns=encoder.get_feature_names_out(cat_cols), index=data.index)
+    data = pd.concat([data.drop(cat_cols, axis=1), encoded_cols], axis=1)
+else:
+    print("No categorical columns to encode.")
+
+if not num_cols.empty:
+    scaler = StandardScaler()
+    data[num_cols] = scaler.fit_transform(data[num_cols])
+else:
+    print("No numerical columns to standardize.")
+
+output_path = 'cleaned_final_merged_data.csv'
+try:
+    data.to_csv(output_path, index=False)
+    print(f"Cleaned dataset saved to {output_path}")
+except Exception as e:
+    raise IOError(f"Failed to save the cleaned dataset: {e}")
